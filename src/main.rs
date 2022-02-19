@@ -1,4 +1,4 @@
-//UP-TO: part 2
+/*//UP-TO: part 2
 // Part 3 will introduce more input handling as well as 
 //  allowing the user to move the cursor around on the screen.
 
@@ -45,5 +45,55 @@ fn main() -> crossterm::Result<()> {
     }
     
     Ok(())
+} */
+
+
+use std::io::Read;
+use std::io::stdout;
+use std::io::Write;
+use std::io::ErrorKind;
+use std::{cmp, env, fs, io};
+use std::fs::File;
+
+use crossterm::{event, terminal, execute, cursor, queue};
+use crossterm::event::{Event, KeyCode, KeyEvent};
+use crossterm::terminal::ClearType;
+
+
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    println!("{:?}", args);
+
+    if args.len() >= 2 {
+        let filePath = &args[1];
+        let f = File::open(filePath);
+        let f = match f {
+            Ok(file) => file,
+            Err(error) => match error.kind() {
+                ErrorKind::NotFound => match File::create(filePath) {
+                    Ok(fc) => fc,
+                    Err(e) => panic!("Problem creating the file: {:?}", e),
+                },
+                other_error => {
+                    panic!("Problem opening the file: {:?}", other_error)
+                }
+            },
+        }; 
+    
+        let test = read_from_file(filePath).unwrap();
+        println!("read: {}", test);
+
+    } else {
+        println!("Editor Error: no file name provided");
+    }
+
+}
+
+/* Read from the file */
+fn read_from_file(pathname: &String) -> Result<String, io::Error> {
+    let mut data = String::new();
+    File::open(pathname)?.read_to_string(&mut data)?;
+    Ok(data)
 }
 
