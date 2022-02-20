@@ -125,7 +125,7 @@ impl FileIO {
 
     fn write_to_file(pathname : &String, new_text : &String) -> Result<bool, io::Error> {
         FileIO::create_file(pathname); // If applied to a file that exists it whipes the file contents
-        FileIO::append_to_file_from_path(pathname, new_text)
+        FileIO::append_to_file(pathname, new_text)
     }
 
     fn print_metadata(file : File) {
