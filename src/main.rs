@@ -90,6 +90,12 @@ impl FileIO {
         Ok(data)
     }
 
+    fn read_from_file_object(mut file : &File) -> Result<String, io::Error> {
+        let mut output = String::new();
+        file.read_to_string(& mut output)?;
+        Ok(output)
+    }
+
     // Gets the file at the given location, returns None if it does not exist
     fn get_file(file_path : &String) -> Option<File> {
         let f = File::open(file_path);
@@ -115,5 +121,21 @@ impl FileIO {
         let mut file = OpenOptions::new().write(true).append(true).open(pathname).unwrap();
         write!(file, "{}", new_text)?;
         Ok(true)
+    }
+
+    fn write_to_file(pathname : &String, new_text : &String) -> Result<bool, io::Error> {
+        FileIO::create_file(pathname); // If applied to a file that exists it whipes the file contents
+        FileIO::append_to_file_from_path(pathname, new_text)
+    }
+
+    fn print_metadata(file : File) {
+        let debug = true;
+        let metadata = match file.metadata() {
+            Err(e) => panic!("Could not get metadata from file: {}", e),
+            Ok(f) => f,
+        };
+        if debug {
+            print!("{:#?}", metadata);
+        };
     }
 }
