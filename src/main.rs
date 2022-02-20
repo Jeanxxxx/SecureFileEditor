@@ -1,3 +1,11 @@
+use std::io::{Read, stdout, Write, ErrorKind};
+use std::fs::{File, OpenOptions};
+use std::{cmp, env, fs, io};
+
+use crossterm::{event, terminal, execute, cursor, queue};
+use crossterm::event::{Event, KeyCode, KeyEvent};
+use crossterm::terminal::ClearType;
+
 /*//UP-TO: part 2
 // Part 3 will introduce more input handling as well as 
 //  allowing the user to move the cursor around on the screen.
@@ -48,22 +56,9 @@ fn main() -> crossterm::Result<()> {
 } */
 
 
-use std::io::Read;
-use std::io::stdout;
-use std::io::Write;
-use std::io::ErrorKind;
-use std::{cmp, env, fs, io};
-use std::fs::File;
-
-use crossterm::{event, terminal, execute, cursor, queue};
-use crossterm::event::{Event, KeyCode, KeyEvent};
-use crossterm::terminal::ClearType;
-
-
-
 fn main() {
     let args: Vec<String> = env::args().collect();
-    println!("{:?}", args);
+    // println!("{:?}", args);
 
     if args.len() >= 2 {
         let filePath = &args[1];
@@ -81,19 +76,29 @@ fn main() {
             },
         }; 
     
-        let test = read_from_file(filePath).unwrap();
+        let test = FileIO::read_from_file(filePath).unwrap();
         println!("read: {}", test);
+        FileIO::append_to_file(filePath, &String::from("more text"));
 
     } else {
         println!("Editor Error: no file name provided");
     }
-
 }
 
-/* Read from the file */
-fn read_from_file(pathname: &String) -> Result<String, io::Error> {
-    let mut data = String::new();
-    File::open(pathname)?.read_to_string(&mut data)?;
-    Ok(data)
-}
 
+// Deals with all the reading and writing to the file
+struct FileIO;
+impl FileIO {
+    /* Read from the file */
+    fn read_from_file(pathname: &String) -> Result<String, io::Error> {
+        let mut data = String::new();
+        File::open(pathname)?.read_to_string(&mut data)?;
+        Ok(data)
+    }
+
+    fn append_to_file(pathname : &String, new_text : &String) -> Result<bool, io::Error> {
+        let mut file = OpenOptions::new().write(true).append(true).open(pathname).unwrap();
+        write!(file, "{}", new_text)?;
+        Ok(true)
+    }
+}
