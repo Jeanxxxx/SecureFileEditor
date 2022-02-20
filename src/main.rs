@@ -58,28 +58,22 @@ fn main() -> crossterm::Result<()> {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    // println!("{:?}", args);
 
     if args.len() >= 2 {
-        let filePath = &args[1];
-        let f = File::open(filePath);
-        let f = match f {
-            Ok(file) => file,
-            Err(error) => match error.kind() {
-                ErrorKind::NotFound => match File::create(filePath) {
-                    Ok(fc) => fc,
-                    Err(e) => panic!("Problem creating the file: {:?}", e),
-                },
-                other_error => {
-                    panic!("Problem opening the file: {:?}", other_error)
-                }
-            },
-        }; 
-    
-        let test = FileIO::read_from_file(filePath).unwrap();
+        let file_path = &args[1];
+        let file : File = match FileIO::get_file(file_path) {
+            Some(f) => f,
+            None => FileIO::create_file(file_path), // This is where we could ask the user what to do
+        };
+        
+        let test = FileIO::read_from_file(file_path).unwrap();
         println!("read: {}", test);
-        FileIO::append_to_file(filePath, &String::from("more text"));
-
+        let worked : bool = FileIO::append_to_file(file_path, &String::from("more text")).unwrap();
+        if worked {
+            println!("Write successful");
+        } else {
+            println!("Problem writing to the file");
+        }
     } else {
         println!("Editor Error: no file name provided");
     }
@@ -94,6 +88,27 @@ impl FileIO {
         let mut data = String::new();
         File::open(pathname)?.read_to_string(&mut data)?;
         Ok(data)
+    }
+
+    // Gets the file at the given location, returns None if it does not exist
+    fn get_file(file_path : &String) -> Option<File> {
+        let f = File::open(file_path);
+        match f {
+            Ok(file) => Some(file),
+            Err(error) => match error.kind() {
+                ErrorKind::NotFound => None,
+                other_error => {
+                    panic!("Problem opening the file: {:?}", other_error)
+                }
+            },
+        } 
+    }
+
+    fn create_file(file_path : &String) -> File {
+        match File::create(file_path) {
+            Ok(fc) => fc,
+            Err(e) => panic!("Problem creating the file: {:?}", e),
+        }
     }
 
     fn append_to_file(pathname : &String, new_text : &String) -> Result<bool, io::Error> {
