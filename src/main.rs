@@ -57,6 +57,8 @@ fn main() -> crossterm::Result<()> {
 
 
 fn main() {
+    //introduce Tidy_Up instance so that raw mode is disabled at end of main
+    let _tidy_up = Tidy_Up;
     let args: Vec<String> = env::args().collect();
 
     if args.len() >= 2 {
@@ -77,6 +79,7 @@ fn main() {
     } else {
         println!("Editor Error: no file name provided");
     }
+    crossterm::terminal::enable_raw_mode();
 }
 
 
@@ -137,5 +140,74 @@ impl FileIO {
         if debug {
             print!("{:#?}", metadata);
         };
+    }
+}
+
+/*
+    Struct responsible for moving the user's (i)nsertion (p)oint while
+    the program is running.
+*/
+struct KeyHandler {
+    ip_x: usize,
+    ip_y: usize,
+    screen_cols: usize,
+    screen_rows: usize,
+}
+impl KeyHandler {
+    //create new KeyHandler with insertion point at origin (top-left corner)
+    fn new(window_size: (usize, usize)) -> KeyHandler {
+        KeyHandler {
+            ip_x: 0,
+            ip_y: 0,
+            screen_cols: window_size.0,
+            screen_rows: window_size.1,
+        }
+    }
+
+    //move the insertion point based on user's keypress
+    fn move_ip(&mut self, operation: KeyCode) {
+        match operation {
+            KeyCode::Up => {
+                if self.ip_y < 1 {
+                    self.ip_y = 0;
+                } else {
+                    self.ip_y -= 1;
+                }
+            },
+            KeyCode::Down => {
+                if self.ip_y != self.screen_rows - 1 {
+                    self.ip_y += 1;
+                }
+            },
+            KeyCode::Left => {
+                if self.ip_x != 0 {
+                    self.ip_x -= 1;
+                }
+            },
+            KeyCode::Right => {
+                if self.ip_x != self.screen_cols - 1 {
+                    self.ip_x += 1;
+                }
+            },
+            _ => {}
+        }
+    }
+}
+
+/*
+    Struct for displaying file contents to user
+*/
+struct Display {
+
+}
+
+/*
+    Struct for disabling raw mode on program exit (when instance is dropped)
+*/
+struct Tidy_Up;
+impl Drop for Tidy_Up {
+    fn drop(&mut self) {
+        terminal::disable_raw_mode().expect("Unable to disable raw mode terminal");
+
     }
 }

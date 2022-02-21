@@ -1,1 +1,4 @@
-testing text
+This is the test file
+it contains multiple lines of 
+text for testing purposes,
+as the name implies.more textmore textmore text
