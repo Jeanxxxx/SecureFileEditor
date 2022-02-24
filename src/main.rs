@@ -192,13 +192,45 @@ impl KeyHandler {
             _ => {}
         }
     }
+
+    //Backspace and moving forward when typing
+
+    fn getCurrentLocationInString(&mut self) -> usize{
+        let x = self.ip_y*self.screen_cols + self.ip_x; //Does not deal with screen having been scrolled?
+        x
+    }
 }
 
 /*
     Struct for displaying file contents to user
 */
 struct Display {
-
+    contents : String,
+}
+impl Display {
+    fn new() -> Display {
+        Display {
+            contents: String::new(),
+        }
+    }
+    
+    fn set_contents(&mut self, new_contents : String) {
+        self.contents = new_contents;
+    }
+    
+    fn insert_content_here(&mut self, before_here : usize, new_contents : String) {
+        let mut result = String::from("");
+        for a in self.contents[..before_here].chars() {
+            result.push(a);
+        }
+        for a in new_contents.chars() {
+            result.push(a);
+        }
+        for a in self.contents[before_here..].chars() {
+            result.push(a);
+        }
+        self.contents = result;
+    }
 }
 
 /*
