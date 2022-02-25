@@ -34,7 +34,7 @@ fn main() -> crossterm::Result<()> {
     terminal::enable_raw_mode()?; //? operator only for returning Option or Result
 
     loop {
-        if event::poll(Duration::from_millis(5000)).expect("Error") {   
+        if event::poll(Duration::from_millis(5000)).expect("Error") {                           // Could use this as inspiration for an auto save system...
             if let Event::Key(event) = event::read().expect("Failed to read line") {
                 match event {   //event (enum) returned by event::read()
                     KeyEvent {
@@ -57,29 +57,62 @@ fn main() -> crossterm::Result<()> {
 
 
 fn main() {
+        // SETUP
     //introduce Tidy_Up instance so that raw mode is disabled at end of main
     let _tidy_up = Tidy_Up;
-    let args: Vec<String> = env::args().collect();
+    
+    // If the user is working on a saved file, it will hold the path to the target file
+    // If the user is working on an unsaved file, it will hold None
+    let opened_file : Option<String> = {
+        let args: Vec<String> = env::args().collect();
+        if args.len() >= 2 {
+            let file_path = &args[1];
+            match FileIO::get_file(file_path) {
+                Some(_f) => Some(String::from(file_path)),
+                None => None
+            }
+        } else {
+            None
+        }
+    };
 
-    if args.len() >= 2 {
-        let file_path = &args[1];
-        let file : File = match FileIO::get_file(file_path) {
-            Some(f) => f,
-            None => FileIO::create_file(file_path), // This is where we could ask the user what to do
-        };
-        
-        let test = FileIO::read_from_file(file_path).unwrap();
-        println!("read: {}", test);
-        let worked : bool = FileIO::append_to_file(file_path, &String::from("more text")).unwrap();
+    let mut on_screen : Display = Display::new();
+    match &opened_file {
+        Some(f) => {
+            let test = FileIO::read_from_file(&f);
+            match test {
+                Ok(f) => on_screen.set_contents(String::from(f)),
+                Err(e) => {
+                    eprintln!("{}", e);
+                    panic!("ERROR");
+                }
+            }
+        },
+        None => on_screen.set_contents(String::new())
+    }
+
+    println!("read:\n{}", on_screen.contents);
+    
+    crossterm::terminal::enable_raw_mode();
+
+        //PROGRAM RUNNING
+    loop {
+        // DISPLAY TEXT (from on_screen.contents) HERE
+
+
+        // Append test
+        on_screen.insert_content_here(0, String::from("more text"));
+        let worked : bool = FileIO::overwrite_to_file(&opened_file.unwrap(), &on_screen.contents).unwrap();
         if worked {
             println!("Write successful");
         } else {
             println!("Problem writing to the file");
         }
-    } else {
-        println!("Editor Error: no file name provided");
+        break
+
+        //render to user save question
     }
-    crossterm::terminal::enable_raw_mode();
+        // EXIT
 }
 
 
@@ -126,7 +159,7 @@ impl FileIO {
         Ok(true)
     }
 
-    fn write_to_file(pathname : &String, new_text : &String) -> Result<bool, io::Error> {
+    fn overwrite_to_file(pathname : &String, new_text : &String) -> Result<bool, io::Error> {
         FileIO::create_file(pathname); // If applied to a file that exists it whipes the file contents
         FileIO::append_to_file(pathname, new_text)
     }
