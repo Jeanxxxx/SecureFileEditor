@@ -91,6 +91,8 @@ fn main() {
         None => on_screen.set_contents(String::new())
     }
 
+    let key_handler : KeyHandler = KeyHandler::new((100, 100));
+
     println!("read:\n{}", on_screen.contents);
     
     crossterm::terminal::enable_raw_mode();
@@ -160,8 +162,20 @@ impl FileIO {
     }
 
     fn overwrite_to_file(pathname : &String, new_text : &String) -> Result<bool, io::Error> {
-        FileIO::create_file(pathname); // If applied to a file that exists it whipes the file contents
+        FileIO::create_file(pathname); // If applied to a file that exists it wipes the file contents
         FileIO::append_to_file(pathname, new_text)
+    }
+
+    fn delete_file(pathname : &String) {
+        let result = fs::remove_file(pathname);
+        match result {
+            Ok(_f) => {
+                println!("File deleted");
+            }
+            Err(e) => {
+                eprintln!("Error deleting file: {}", e);
+            }
+        }
     }
 
     fn print_metadata(file : File) {
@@ -228,7 +242,7 @@ impl KeyHandler {
 
     //Backspace and moving forward when typing
 
-    fn getCurrentLocationInString(&mut self) -> usize{
+    fn get_current_location_in_string(&mut self) -> usize {
         let x = self.ip_y*self.screen_cols + self.ip_x; //Does not deal with screen having been scrolled?
         x
     }
