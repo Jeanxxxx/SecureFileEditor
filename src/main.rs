@@ -5,6 +5,10 @@ use std::{cmp, env, fs, io};
 use crossterm::{event, terminal, execute, cursor, queue};
 use crossterm::event::{Event, KeyCode, KeyEvent};
 use crossterm::terminal::ClearType;
+use std::time::Duration; // for autosave
+
+static MINAUTOSAVESIZE : usize = 100;
+static AUTOSAVEEVERYMINUTES : u64 = 1;
 
 /*//UP-TO: part 2
 // Part 3 will introduce more input handling as well as 
@@ -34,7 +38,7 @@ fn main() -> crossterm::Result<()> {
     terminal::enable_raw_mode()?; //? operator only for returning Option or Result
 
     loop {
-        if event::poll(Duration::from_millis(5000)).expect("Error") {                           // Could use this as inspiration for an auto save system...
+        if event::poll(Duration::from_millis(5000)).expect("Error") {
             if let Event::Key(event) = event::read().expect("Failed to read line") {
                 match event {   //event (enum) returned by event::read()
                     KeyEvent {
@@ -68,7 +72,18 @@ fn main() {
         if args.len() >= 2 {
             let file_path = &args[1];
             match FileIO::get_file(file_path) {
-                Some(_f) => Some(String::from(file_path)),
+                Some(_f) => {
+                    if FileIO::check_for_auto_save(file_path) {
+                        println!("Use autosave?");
+                        // If the user uses the autosave, it replaces the current save with the auto save
+                        // If the user does not use the autosave, it simply ignores the autosave
+                        if true {
+                            FileIO::overwrite_to_file(file_path, &FileIO::read_from_file(&FileIO::get_auto_save_path(file_path)).unwrap()).unwrap();
+                            FileIO::delete_auto_save(file_path);
+                        }
+                    }
+                    Some(String::from(file_path))
+                },
                 None => None
             }
         } else {
@@ -99,6 +114,9 @@ fn main() {
 
         //PROGRAM RUNNING
     loop {
+        if event::poll(Duration::from_secs(AUTOSAVEEVERYMINUTES * 60)).expect("Error") {
+
+
         // DISPLAY TEXT (from on_screen.contents) HERE
 
 
@@ -109,6 +127,9 @@ fn main() {
             println!("Write successful");
         } else {
             println!("Problem writing to the file");
+        }
+        } else {
+            FileIO::auto_save(&opened_file, &key_handler.updates, &on_screen.contents);
         }
         break
 
@@ -166,6 +187,48 @@ impl FileIO {
         FileIO::append_to_file(pathname, new_text)
     }
 
+    fn auto_save(pathname : &Option<String>, updates_count : &usize, current_state_of_text : &String) {
+        if *updates_count < MINAUTOSAVESIZE {
+            println!("Not enough content to autosave.");
+            return;
+        }
+        println!("Autosaving...");
+        let pathname : String = {
+            match pathname {
+                Some(s) => FileIO::get_auto_save_path(s),
+                None => String::from(""),
+            }
+        };
+        let result = FileIO::overwrite_to_file(&pathname, current_state_of_text);
+        match result {
+            Ok(_f) => {
+                println!("Autosaved");
+            },
+            Err(e) => {
+                eprintln!("There was an error autosaving: {}", e)
+            },
+        }
+    }
+
+    fn get_auto_save_path(pathname : &String) -> String {
+        format!("{}~", pathname)
+    }
+    
+    fn delete_auto_save(pathname : &String) {
+        FileIO::delete_file(&FileIO::get_auto_save_path(pathname));
+    }
+
+    fn check_for_auto_save(pathname : &String) -> bool{
+        match FileIO::get_file(&FileIO::get_auto_save_path(pathname)) {
+            Some(_f) => {
+                true
+            },
+            None => {
+                false
+            }
+        }
+    }
+
     fn delete_file(pathname : &String) {
         let result = fs::remove_file(pathname);
         match result {
@@ -199,6 +262,7 @@ struct KeyHandler {
     ip_y: usize,
     screen_cols: usize,
     screen_rows: usize,
+    updates: usize,
 }
 impl KeyHandler {
     //create new KeyHandler with insertion point at origin (top-left corner)
@@ -208,6 +272,7 @@ impl KeyHandler {
             ip_y: 0,
             screen_cols: window_size.0,
             screen_rows: window_size.1,
+            updates: 111,
         }
     }
 
@@ -236,6 +301,26 @@ impl KeyHandler {
                     self.ip_x += 1;
                 }
             },
+            _ => {}
+        }
+    }
+
+    fn insertion(&mut self, operation : KeyCode) {
+        match operation {
+            KeyCode::Char(c) => {
+                self.updates += 1;
+                self.ip_x += 1;
+                println!("bleh: {}", c);
+            },
+            KeyCode::Backspace => {
+                self.updates += 1;
+                self.ip_x -= 1;
+                println!("bleh: back");
+            }
+            KeyCode::Delete => {
+                self.updates += 1;
+                println!("bleh: delete");
+            }
             _ => {}
         }
     }
