@@ -345,6 +345,20 @@ impl Display {
             contents: String::new(),
         }
     }
+  
+    fn get_file(file: &Path) -> Self {
+        let file_content = fs::read_to_string(file).expect("Unable to read file");
+        Self {
+            contents: file_content.lines().map(|it| it.into()).collect(),
+        }
+    }
+    fn number_of_row(&self) -> usize {
+        self.contents.len()
+    }
+
+    fn get_row(&self,line:usize) -> &str {
+        &self.contents[line]
+    }
     
     fn set_contents(&mut self, new_contents : String) {
         self.contents = new_contents;
